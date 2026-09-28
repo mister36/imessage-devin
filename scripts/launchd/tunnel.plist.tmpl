@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>@@LABEL@@</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>exec "$(command -v cloudflared)" tunnel --no-autoupdate @@TUNNEL_ARGS_SHELL@@</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>@@LOG_DIR@@/@@LABEL@@.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>@@LOG_DIR@@/@@LABEL@@.err.log</string>
+</dict>
+</plist>
