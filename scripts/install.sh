@@ -41,6 +41,9 @@ command -v cloudflared >/dev/null 2>&1 || {
   command -v brew >/dev/null 2>&1 || die "install Homebrew (or cloudflared) first: https://brew.sh"
   brew install cloudflared
 }
+# launchd agents get a minimal PATH, so bake in the absolute path.
+CLOUDFLARED_BIN="$(command -v cloudflared)"
+CLOUDFLARED_BIN="$(cd "$(dirname "${CLOUDFLARED_BIN}")" && pwd)/$(basename "${CLOUDFLARED_BIN}")"
 
 uv venv --directory "${REPO_DIR}" --quiet
 uv pip install --directory "${REPO_DIR}" --quiet -e "${REPO_DIR}"
@@ -76,6 +79,7 @@ render() {
       -e "s|@@ENV_FILE@@|${ENV_FILE}|g" \
       -e "s|@@LOG_DIR@@|${LOG_DIR}|g" \
       -e "s|@@PORT@@|${MCP_PORT}|g" \
+      -e "s|@@CLOUDFLARED@@|${CLOUDFLARED_BIN}|g" \
       -e "s|@@TUNNEL_ARGS_SHELL@@|$2|g" \
       "$3"
 }
