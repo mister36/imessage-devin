@@ -67,6 +67,8 @@ def read_sync_status() -> dict[str, str | bool]:
         value = stored.get(field)
         if not isinstance(value, str):
             continue
+        if value.endswith("Z"):
+            value = value[:-1] + "+00:00"
         try:
             parsed = datetime.fromisoformat(value)
         except ValueError:

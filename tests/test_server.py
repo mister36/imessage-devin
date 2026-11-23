@@ -74,12 +74,13 @@ async def test_healthz_is_open(app):
         assert (await http.get("/healthz")).status_code == 200
 
 
-async def test_sync_status_is_private_and_filters_status_file(app, monkeypatch, tmp_path):
+@pytest.mark.parametrize("utc_suffix", ["Z", "+00:00"])
+async def test_sync_status_is_private_and_filters_status_file(app, monkeypatch, tmp_path, utc_suffix):
     monkeypatch.setenv("HOME", str(tmp_path))
     status_path = tmp_path / ".config" / "devin-imessage" / "status.json"
     status_path.parent.mkdir(parents=True)
     status_path.write_text(
-        '{"checked_at":"2026-11-23T00:23:00Z","icloud_account_needs_repair":true,'
+        f'{{"checked_at":"2026-11-23T00:23:00{utc_suffix}","icloud_account_needs_repair":true,'
         '"newest_message_at":"invalid timestamp","other":"not sync metadata"}'
     )
 
