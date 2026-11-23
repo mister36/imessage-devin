@@ -43,6 +43,7 @@ command -v cloudflared >/dev/null 2>&1 || {
 }
 # launchd agents get a minimal PATH, so bake in the absolute path.
 CLOUDFLARED_BIN="$(command -v cloudflared)"
+CLOUDFLARED_BIN="$(cd "$(dirname "${CLOUDFLARED_BIN}")" && pwd)/$(basename "${CLOUDFLARED_BIN}")"
 
 uv venv --directory "${REPO_DIR}" --quiet
 uv pip install --directory "${REPO_DIR}" --quiet -e "${REPO_DIR}"
