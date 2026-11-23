@@ -74,6 +74,25 @@ async def test_healthz_is_open(app):
         assert (await http.get("/healthz")).status_code == 200
 
 
+async def test_sync_status_is_private_and_filters_status_file(app, monkeypatch, tmp_path):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    status_path = tmp_path / ".config" / "devin-imessage" / "status.json"
+    status_path.parent.mkdir(parents=True)
+    status_path.write_text(
+        '{"checked_at":"2026-11-23T00:23:00Z","icloud_account_needs_repair":true,'
+        '"newest_message_at":"invalid timestamp","other":"not sync metadata"}'
+    )
+
+    assert (await call_tool(make_app(), "sync_status", {}, token=None)).status_code == 401
+    async with running(make_app()) as http:
+        assert (await http.get("/healthz")).json() == {"ok": True}
+    response = await call_tool(app, "sync_status", {})
+    assert response.json()["result"]["structuredContent"] == {
+        "checked_at": "2026-11-23T00:23:00+00:00",
+        "icloud_account_needs_repair": True,
+    }
+
+
 @respx.mock
 async def test_list_chats_projects_payload(app):
     respx.post(f"{BASE}/api/v1/chat/query").mock(
