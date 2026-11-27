@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import functools
 import hmac
+import json
 import logging
 import os
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import uvicorn
@@ -40,6 +43,41 @@ def guarded(fn):
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
 WRITES = ToolAnnotations(readOnlyHint=False, destructiveHint=False)
+
+SYNC_TIMESTAMP_FIELDS = (
+    "checked_at",
+    "newest_message_at",
+    "newest_incoming_message_at",
+    "icloud_last_sync_at",
+)
+
+
+def read_sync_status() -> dict[str, str | bool]:
+    status_path = Path.home() / ".config" / "devin-imessage" / "status.json"
+    try:
+        with status_path.open(encoding="utf-8") as status_file:
+            stored = json.loads(status_file.read(4096))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(stored, dict):
+        return {}
+
+    result: dict[str, str | bool] = {}
+    for field in SYNC_TIMESTAMP_FIELDS:
+        value = stored.get(field)
+        if not isinstance(value, str):
+            continue
+        if value.endswith("Z"):
+            value = value[:-1] + "+00:00"
+        try:
+            parsed = datetime.fromisoformat(value)
+        except ValueError:
+            continue
+        if parsed.utcoffset() == timedelta(0):
+            result[field] = parsed.isoformat(timespec="seconds")
+    if isinstance(repair := stored.get("icloud_account_needs_repair"), bool):
+        result["icloud_account_needs_repair"] = repair
+    return result
 
 
 class BearerAuthMiddleware:
@@ -97,6 +135,11 @@ def build_server(config: Config) -> tuple[MCPServer, BlueBubblesClient]:
             "private_api": info.get("private_api"),
             "write_policy": policy.describe(),
         }
+
+    @mcp.tool(annotations=READ_ONLY)
+    async def sync_status() -> dict[str, str | bool]:
+        """Read the Mac's last observed Messages and iCloud sync timestamps, if available."""
+        return read_sync_status()
 
     @mcp.tool(annotations=READ_ONLY)
     @guarded
